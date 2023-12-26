@@ -1,0 +1,65 @@
+- hosts: al2
+  become: true
+  tasks:
+
+- hosts: all
+  become: true
+  tasks:
+
+  - name: create a user
+    tags: always
+    user: 
+      name: sandy
+      groups: ansible
+
+  - name: add ssh key for sandy
+    tags: always
+    authorized_key:
+      user: sandy
+      key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCpi4FFusyZ9sE4NuQf9NH8jjuawgaejRubTT40cJJEI3HgsARqbf2OHsmD8MC8CL0tnt1NR2Dy4MoQ9EWr+WzEOlYV7UL3+ZoJ2S9shG/QEbXYCsANmZjAUUkAnA+2mothWvgb6UjKXlDozdryHor3AqIJM36HC+VcXNuWA/CaHiqSVAihxXCH/7UpTH8RId0RkjJQS8nysIf7A2IdrXymIPQp3ePCP9OIWnwOYg11O+WX2sFd/9BXyB8xP2W8/pLPPvW8xtmwY2uhupX455L5kh7UFCmGVU4UlO8UTT5ZTaEzpAB0npOK7ZTPEcYE3gegqLBDZS468aB3su3bTjtRfQqlo/s1tOj+ldwizPO78CR2AFDt6BzodDyJIEJl3kxFvFZfmDNEDEfyeM78ulUbpJipkhkkrsUUNb+G8657h9Y56W3Cjl/CC/th1SA8Zi+cet3WXI9tKh5C0sbdnHbXpnj8rLXO5upm9SY7ufsduVxZWZtcHHysDLty4bc6xzk= ansible@ip-172-31-0-35.ec2.internal"
+
+  - name: add sudoers
+    tags: always
+    copy: 
+       src: sandy
+       dest: /etc/sudoers.d/sandy
+       owner: root
+       group: root
+       mode: 0440
+        
+  - name: update repository index
+    tags: httpd, php
+    package:
+      update_cache: yes
+
+  - name: install httpd and php
+    tags: httpd, php
+    package: 
+      name:
+        - httpd
+        - mod_http2.x86_64 
+      state: latest
+
+  - name: start httpd on AL2
+    tags: httpd, php
+    service:
+      name: httpd
+      state: started
+      enabled: yes
+  - name: change email in the httpd.conf
+    tags: httpd, php
+    lineinfile: 
+      path: /etc/httpd/conf/httpd.conf
+      regexp: '^ServerAdmin'
+      line: ServerAdmin somebody@somewhere.com
+    register: httpd
+
+  - name: restart httpd
+    tags: httpd, php
+    service: 
+      name: httpd
+      state: restarted
+    when: httpd.changed
+   
+
+    
